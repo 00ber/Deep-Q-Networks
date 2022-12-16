@@ -1,5 +1,6 @@
-import gym
-import numpy as np 
+import gym 
+import numpy as np
+
 
 # Airstrikerラッパー
 class AirstrikerDiscretizer(gym.ActionWrapper):
@@ -19,22 +20,3 @@ class AirstrikerDiscretizer(gym.ActionWrapper):
     # 行動の取得
     def action(self, a):
         return self._actions[a].copy()
-
-# CustomRewardAndDoneラッパー
-class CustomRewardAndDoneEnv(gym.Wrapper):
-    # 初期化
-    def __init__(self, env):
-        super(CustomRewardAndDoneEnv, self).__init__(env)
-
-    # ステップ
-    def step(self, action):
-        state, rew, done, info = self.env.step(action)
-
-        # 報酬の変更
-        rew /= 20
-
-        # エピソード完了の変更
-        if info['gameover'] == 1:
-            done = True
-
-        return state, rew, done, info
