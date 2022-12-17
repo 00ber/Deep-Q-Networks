@@ -55,7 +55,7 @@ def fill_memory(agent: DQNAgent):
         done = False 
         while not done:
             action = agent.act(state)
-            next_state, reward, done, info = env.step(action)
+            next_state, reward, done, _ = env.step(action)
             agent.cache(state, next_state, action, reward, done)
             state = next_state
 
@@ -95,3 +95,6 @@ def train(agent: DQNAgent):
 
         if e % 20 == 0:
             logger.record(episode=e, epsilon=agent.exploration_rate, step=agent.curr_step)
+
+fill_memory(agent)
+train(agent)
