@@ -2,7 +2,7 @@ import datetime
 from pathlib import Path
 from itertools import count
 from agent import MyAgent,  MetricLogger
-from wrappersnew import make_env
+from wrappers import make_env
 
 
 env = make_env()
@@ -10,6 +10,7 @@ env = make_env()
 env.reset()
 
 save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+save_dir.mkdir(parents=True)
 
 checkpoint = Path('checkpoints/2022-12-16T01-20-33/airstriker__net_1.chkpt')
 agent = MyAgent(state_dim=(1, 84, 84), action_dim=env.action_space.n, save_dir=save_dir, checkpoint=checkpoint)

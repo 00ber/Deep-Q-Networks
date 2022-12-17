@@ -1,3 +1,4 @@
+import os
 import random, datetime
 from pathlib import Path
 import retro as gym
@@ -9,6 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from agent import MyAgent, MyDQN, MetricLogger
 from wrappers import make_env
+import pickle
 
 
 # set up matplotlib
@@ -19,29 +21,31 @@ if is_ipython:
 plt.ion()
 
 
-# env = gym.make(game='Airstriker-Genesis')
-# env = AirstrikerDiscretizer(env)
-# env = SkipFrame(env, skip=4)
-# env = GrayScaleObservation(env)
-# if gym.__version__ < '0.26':
-#     env = FrameStack(env, num_stack=4, new_step_api=True)
-# else:
-#     env = FrameStack(env, num_stack=4)
-
 env = make_env()
 
 use_cuda = torch.cuda.is_available()
 print(f"Using CUDA: {use_cuda}")
 print()
 
-save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-save_dir.mkdir(parents=True)
+path = "checkpoints/latest"
+save_dir = Path(path) 
 
-agent = MyAgent(state_dim=(1, 84, 84), action_dim=env.action_space.n, save_dir=save_dir)
+isExist = os.path.exists(path)
+if not isExist:
+   os.makedirs(path)
+
+# save_dir.mkdir(parents=True)
+
+
+checkpoint = None 
+checkpoint = Path('checkpoints/latest/airstriker_net_3.chkpt')
+
+
+agent = MyAgent(state_dim=(1, 84, 84), action_dim=env.action_space.n, save_dir=save_dir, checkpoint=checkpoint, reset_exploration_rate=True)
 
 logger = MetricLogger(save_dir)
 
-episodes = 100000
+episodes = 10000000
 for e in range(episodes):
 
     state = env.reset()
@@ -71,7 +75,7 @@ for e in range(episodes):
         if done or info["gameover"] == 1:
             break
 
-    logger.log_episode()
+    logger.log_episode(e)
 
     if e % 20 == 0:
         logger.record(episode=e, epsilon=agent.exploration_rate, step=agent.curr_step)
