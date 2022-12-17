@@ -165,7 +165,7 @@ class MetricLogger:
 
 
 class DQNAgent:
-    def __init__(self, state_dim, action_dim, save_dir, checkpoint=None, reset_exploration_rate=False, max_memory_size=100000):
+    def __init__(self, state_dim, action_dim, save_dir, checkpoint=None, reset_exploration_rate=False, max_memory_size=100000, load_replay_buffer=True):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.max_memory_size = max_memory_size
@@ -193,7 +193,7 @@ class DQNAgent:
         if self.use_cuda:
             self.net = self.net.to(device='cuda')
         if checkpoint:
-            self.load(checkpoint, reset_exploration_rate)
+            self.load(checkpoint, reset_exploration_rate, load_replay_buffer)
 
         # self.optimizer = torch.optim.Adam(self.net.parameters(), lr=0.00025)
         self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=0.00025, amsgrad=True)
@@ -340,20 +340,22 @@ class DQNAgent:
         print(f"Airstriker model saved to {save_path} at step {self.curr_step}")
 
 
-    def load(self, load_path, reset_exploration_rate=False):
+    def load(self, load_path, reset_exploration_rate, load_replay_buffer):
         if not load_path.exists():
             raise ValueError(f"{load_path} does not exist")
 
         ckp = torch.load(load_path, map_location=('cuda' if self.use_cuda else 'cpu'))
         exploration_rate = ckp.get('exploration_rate')
         state_dict = ckp.get('model')
-        replay_memory = ckp.get('replay_memory')
+        
 
         print(f"Loading model at {load_path} with exploration rate {exploration_rate}")
         self.net.load_state_dict(state_dict)
 
-        print(f"Loading replay memory. Len {len(replay_memory)}" if replay_memory else "Saved replay memory not found. Not restoring replay memory.")
-        self.memory = replay_memory if replay_memory else self.memory
+        if load_replay_buffer:
+            replay_memory = ckp.get('replay_memory')
+            print(f"Loading replay memory. Len {len(replay_memory)}" if replay_memory else "Saved replay memory not found. Not restoring replay memory.")
+            self.memory = replay_memory if replay_memory else self.memory
 
         if reset_exploration_rate:
             print(f"Reset exploration rate option specified. Not restoring saved exploration rate {exploration_rate}. The current exploration rate is {self.exploration_rate}")

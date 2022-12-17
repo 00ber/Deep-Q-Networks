@@ -48,9 +48,9 @@ agent = DQNAgent(
 
 logger = MetricLogger(save_dir)
 
-def fill_memory(agent: DQNAgent):
+def fill_memory(agent: DQNAgent, num_episodes=10000):
     print("Filling up memory....")
-    for _ in trange(max_memory_size):
+    for _ in trange(num_episodes):
         state = env.reset()
         done = False 
         while not done:
