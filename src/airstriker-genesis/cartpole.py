@@ -154,11 +154,11 @@ class MetricLogger:
 
 
 class MyAgent:
-    def __init__(self, state_dim, action_dim, save_dir, checkpoint=None, reset_exploration_rate=False):
+    def __init__(self, state_dim, action_dim, save_dir, checkpoint=None, reset_exploration_rate=False, max_memory_size=100000):
         self.state_dim = state_dim
         self.action_dim = action_dim
-        
-        self.memory = deque(maxlen=100000)
+        self.max_memory_size = max_memory_size
+        self.memory = deque(maxlen=max_memory_size)
         # self.batch_size = 32
         self.batch_size = 512
 
@@ -171,10 +171,10 @@ class MyAgent:
         self.curr_step = 0
         self.learning_start_threshold = 10000  # min. experiences before training
 
-        self.learn_every = 1   # no. of experiences between updates to Q_online
-        self.sync_every = 1e3   # no. of experiences between Q_target & Q_online sync
+        self.learn_every = 5   # no. of experiences between updates to Q_online
+        self.sync_every = 200  # no. of experiences between Q_target & Q_online sync
 
-        self.save_every = 20000   # no. of experiences between saving Mario Net
+        self.save_every = 200000   # no. of experiences between saving Mario Net
         self.save_dir = save_dir
 
         self.use_cuda = torch.cuda.is_available()
@@ -248,18 +248,34 @@ class MyAgent:
         return state, next_state, action.squeeze(), reward.squeeze(), done.squeeze()
 
 
-    def td_estimate(self, state, action):
-        current_Q = self.net(state, model='online')[np.arange(0, self.batch_size), action] # Q_online(s,a)
-        return current_Q
+    # def td_estimate(self, state, action):
+    #     current_Q = self.net(state, model='online')[np.arange(0, self.batch_size), action] # Q_online(s,a)
+    #     return current_Q
+
+
+    # @torch.no_grad()
+    # def td_target(self, reward, next_state, done):
+    #     next_state_Q = self.net(next_state, model='online')
+    #     best_action = torch.argmax(next_state_Q, axis=1)
+    #     next_Q = self.net(next_state, model='target')[np.arange(0, self.batch_size), best_action]
+    #     return (reward + (1 - done.float()) * self.gamma * next_Q).float()
+
+    def td_estimate(self, states, actions):
+        actions = actions.reshape(-1, 1)
+        predicted_qs = self.net(states, model='online')# Q_online(s,a)
+        predicted_qs = predicted_qs.gather(1, actions)
+        return predicted_qs
 
 
     @torch.no_grad()
-    def td_target(self, reward, next_state, done):
-        next_state_Q = self.net(next_state, model='online')
-        best_action = torch.argmax(next_state_Q, axis=1)
-        next_Q = self.net(next_state, model='target')[np.arange(0, self.batch_size), best_action]
-        return (reward + (1 - done.float()) * self.gamma * next_Q).float()
-
+    def td_target(self, rewards, next_states, dones):
+        rewards = rewards.reshape(-1, 1)
+        dones = dones.reshape(-1, 1)
+        target_qs = self.net(next_states, model='target')
+        target_qs = torch.max(target_qs, dim=1).values
+        target_qs = target_qs.reshape(-1, 1)
+        target_qs[dones] = 0.0
+        return (rewards + (self.gamma * target_qs))
 
     def update_Q_online(self, td_estimate, td_target) :
         loss = self.loss_fn(td_estimate, td_target)
@@ -302,7 +318,7 @@ class MyAgent:
 
 
     def save(self):
-        save_path = self.save_dir / f"airstriker_net_{int(self.curr_step // self.save_every)}.chkpt"
+        save_path = self.save_dir / f"cartpole_net_{int(self.curr_step // self.save_every)}.chkpt"
         torch.save(
             dict(
                 model=self.net.state_dict(),
@@ -311,10 +327,8 @@ class MyAgent:
             ),
             save_path
         )
-        # with open(self.save_dir / f"airstriker_mem_{int(self.curr_step // self.save_every)}.pkl", 'wb') as mem:
-        #     # Saves replay memory
-        #     pickle.dump(self.memory, mem)
-        print(f"Airstriker rNet saved to {save_path} at step {self.curr_step}")
+
+        print(f"Cartpole Net saved to {save_path} at step {self.curr_step}")
 
 
     def load(self, load_path, reset_exploration_rate=False):

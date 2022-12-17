@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 import pickle 
 
 
-class MyDQN(nn.Module):
+class DQNet(nn.Module):
     """mini cnn structure
   input -> (conv2d + relu) x 3 -> flatten -> (dense + relu) x 2 -> output
   """
@@ -164,17 +164,15 @@ class MetricLogger:
             plt.clf()
 
 
-class MyAgent:
-    def __init__(self, state_dim, action_dim, save_dir, checkpoint=None, reset_exploration_rate=False):
+class DQNAgent:
+    def __init__(self, state_dim, action_dim, save_dir, checkpoint=None, reset_exploration_rate=False, max_memory_size=100000):
         self.state_dim = state_dim
         self.action_dim = action_dim
-        
-        self.memory = deque(maxlen=100000)
-        # self.batch_size = 32
-        self.batch_size = 512
+        self.max_memory_size = max_memory_size
+        self.memory = deque(maxlen=max_memory_size)
+        self.batch_size = 64
 
         self.exploration_rate = 1
-        # self.exploration_rate_decay = 0.99999975
         self.exploration_rate_decay = 0.9999999
         self.exploration_rate_min = 0.1
         self.gamma = 0.9
@@ -182,16 +180,16 @@ class MyAgent:
         self.curr_step = 0
         self.learning_start_threshold = 10000  # min. experiences before training
 
-        self.learn_every = 1   # no. of experiences between updates to Q_online
-        self.sync_every = 1e3   # no. of experiences between Q_target & Q_online sync
+        self.learn_every = 5   # no. of experiences between updates to Q_online
+        self.sync_every = 200  # no. of experiences between Q_target & Q_online sync
 
-        self.save_every = 20000   # no. of experiences between saving Mario Net
+        self.save_every = 200000   # no. of experiences between saving Mario Net
         self.save_dir = save_dir
 
         self.use_cuda = torch.cuda.is_available()
 
         # Mario's DNN to predict the most optimal action - we implement this in the Learn section
-        self.net = MyDQN(self.state_dim, self.action_dim).float()
+        self.net = DQNet(self.state_dim, self.action_dim).float()
         if self.use_cuda:
             self.net = self.net.to(device='cuda')
         if checkpoint:
@@ -259,18 +257,34 @@ class MyAgent:
         return state, next_state, action.squeeze(), reward.squeeze(), done.squeeze()
 
 
-    def td_estimate(self, state, action):
-        current_Q = self.net(state, model='online')[np.arange(0, self.batch_size), action] # Q_online(s,a)
-        return current_Q
+    # def td_estimate(self, state, action):
+    #     current_Q = self.net(state, model='online')[np.arange(0, self.batch_size), action] # Q_online(s,a)
+    #     return current_Q
+
+
+    # @torch.no_grad()
+    # def td_target(self, reward, next_state, done):
+    #     next_state_Q = self.net(next_state, model='online')
+    #     best_action = torch.argmax(next_state_Q, axis=1)
+    #     next_Q = self.net(next_state, model='target')[np.arange(0, self.batch_size), best_action]
+    #     return (reward + (1 - done.float()) * self.gamma * next_Q).float()
+
+    def td_estimate(self, states, actions):
+        actions = actions.reshape(-1, 1)
+        predicted_qs = self.net(states, model='online')# Q_online(s,a)
+        predicted_qs = predicted_qs.gather(1, actions)
+        return predicted_qs
 
 
     @torch.no_grad()
-    def td_target(self, reward, next_state, done):
-        next_state_Q = self.net(next_state, model='online')
-        best_action = torch.argmax(next_state_Q, axis=1)
-        next_Q = self.net(next_state, model='target')[np.arange(0, self.batch_size), best_action]
-        return (reward + (1 - done.float()) * self.gamma * next_Q).float()
-
+    def td_target(self, rewards, next_states, dones):
+        rewards = rewards.reshape(-1, 1)
+        dones = dones.reshape(-1, 1)
+        target_qs = self.net(next_states, model='target')
+        target_qs = torch.max(target_qs, dim=1).values
+        target_qs = target_qs.reshape(-1, 1)
+        target_qs[dones] = 0.0
+        return (rewards + (self.gamma * target_qs))
 
     def update_Q_online(self, td_estimate, td_target) :
         loss = self.loss_fn(td_estimate, td_target)
@@ -322,10 +336,8 @@ class MyAgent:
             ),
             save_path
         )
-        # with open(self.save_dir / f"airstriker_mem_{int(self.curr_step // self.save_every)}.pkl", 'wb') as mem:
-        #     # Saves replay memory
-        #     pickle.dump(self.memory, mem)
-        print(f"Airstriker rNet saved to {save_path} at step {self.curr_step}")
+
+        print(f"Airstriker model saved to {save_path} at step {self.curr_step}")
 
 
     def load(self, load_path, reset_exploration_rate=False):
