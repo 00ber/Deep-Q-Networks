@@ -8,9 +8,11 @@ from itertools import count
 import torch
 import matplotlib
 import matplotlib.pyplot as plt
-from agent import MyAgent, MyDQN, MetricLogger
+# from agent import MyAgent, MyDQN, MetricLogger
+from cartpole import MyAgent, MetricLogger
 from wrappers import make_env
 import pickle
+import gym 
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -20,13 +22,14 @@ if is_ipython:
 plt.ion()
 
 
-env = make_env()
+# env = make_env()
+env = gym.make('CartPole-v1')
 
 use_cuda = torch.cuda.is_available()
 print(f"Using CUDA: {use_cuda}")
 print()
 
-path = "checkpoints/airstriker"
+path = "checkpoints/cartpole/latest"
 save_dir = Path(path) 
 
 isExist = os.path.exists(path)
@@ -39,7 +42,15 @@ if not isExist:
 checkpoint = None 
 # checkpoint = Path('checkpoints/latest/airstriker_net_3.chkpt')
 
-agent = MyAgent(state_dim=(1, 84, 84), action_dim=env.action_space.n, save_dir=save_dir, checkpoint=checkpoint, reset_exploration_rate=True)
+# For cartpole
+n_actions = env.action_space.n
+state = env.reset()
+n_observations = len(state)
+agent = MyAgent(state_dim=n_observations, action_dim=n_actions, save_dir=save_dir, checkpoint=checkpoint, reset_exploration_rate=True)
+
+# For airstriker
+# agent = MyAgent(state_dim=(1, 84, 84), action_dim=env.action_space.n, save_dir=save_dir, checkpoint=checkpoint, reset_exploration_rate=True)
+
 
 logger = MetricLogger(save_dir)
 
@@ -69,8 +80,11 @@ for e in range(episodes):
         # Update state
         state = next_state
         
-        # Check if end of game
-        if done or info["gameover"] == 1:
+        # # Check if end of game (for airstriker)
+        # if done or info["gameover"] == 1:
+        #     break
+        # Check if end of game (for cartpole)
+        if done:
             break
 
     logger.log_episode(e)
