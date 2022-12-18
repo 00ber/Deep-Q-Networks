@@ -127,6 +127,7 @@ dependencies:
   - tk=8.6.12=h5d9f67b_0
   - torchvision=0.2.2=py_3
   - tornado=6.2=py37hca72f7f_0
+  - tqdm=4.64.1=py37hecd8cb5_0
   - traitlets=5.7.1=py37hecd8cb5_0
   - typing-extensions=4.4.0=py37hecd8cb5_0
   - typing_extensions=4.4.0=py37hecd8cb5_0
