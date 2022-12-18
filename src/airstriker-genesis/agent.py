@@ -1,4 +1,4 @@
-
+import tensorflow as tf
 import torch 
 import numpy as np
 import random
@@ -165,25 +165,42 @@ class MetricLogger:
 
 
 class DQNAgent:
-    def __init__(self, state_dim, action_dim, save_dir, checkpoint=None, reset_exploration_rate=False, max_memory_size=100000, load_replay_buffer=True):
+    def __init__(self, 
+                 state_dim, 
+                 action_dim, 
+                 save_dir, 
+                 checkpoint=None, 
+                 learning_rate=0.00025, 
+                 max_memory_size=100000, 
+                 batch_size=32,
+                 exploration_rate=1,
+                 exploration_rate_decay=0.9999999,
+                 exploration_rate_min=0.1,
+                 training_frequency=1,
+                 learning_starts=1000,
+                 target_network_sync_frequency=500,
+                 reset_exploration_rate=False, 
+                 save_frequency=100000,
+                 gamma=0.9,
+                 load_replay_buffer=True):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.max_memory_size = max_memory_size
         self.memory = deque(maxlen=max_memory_size)
-        self.batch_size = 64
+        self.batch_size = batch_size
 
-        self.exploration_rate = 1
-        self.exploration_rate_decay = 0.9999999
-        self.exploration_rate_min = 0.1
-        self.gamma = 0.9
+        self.exploration_rate = exploration_rate
+        self.exploration_rate_decay = exploration_rate_decay
+        self.exploration_rate_min = exploration_rate_min
+        self.gamma = gamma
 
         self.curr_step = 0
-        self.learning_start_threshold = 10000  # min. experiences before training
+        self.learning_starts = learning_starts  # min. experiences before training
 
-        self.learn_every = 5   # no. of experiences between updates to Q_online
-        self.sync_every = 200  # no. of experiences between Q_target & Q_online sync
+        self.training_frequency = training_frequency   # no. of experiences between updates to Q_online
+        self.target_network_sync_frequency = target_network_sync_frequency  # no. of experiences between Q_target & Q_online sync
 
-        self.save_every = 200000   # no. of experiences between saving Mario Net
+        self.save_every = save_frequency   # no. of experiences between saving Mario Net
         self.save_dir = save_dir
 
         self.use_cuda = torch.cuda.is_available()
@@ -195,8 +212,7 @@ class DQNAgent:
         if checkpoint:
             self.load(checkpoint, reset_exploration_rate, load_replay_buffer)
 
-        # self.optimizer = torch.optim.Adam(self.net.parameters(), lr=0.00025)
-        self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=0.00025, amsgrad=True)
+        self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=learning_rate, amsgrad=True)
         self.loss_fn = torch.nn.SmoothL1Loss()
 
 
@@ -299,16 +315,16 @@ class DQNAgent:
 
 
     def learn(self):
-        if self.curr_step % self.sync_every == 0:
+        if self.curr_step % self.target_network_sync_frequency == 0:
             self.sync_Q_target()
 
         if self.curr_step % self.save_every == 0:
             self.save()
 
-        if self.curr_step < self.learning_start_threshold:
+        if self.curr_step < self.learning_starts:
             return None, None
 
-        if self.curr_step % self.learn_every != 0:
+        if self.curr_step % self.training_frequency != 0:
             return None, None
 
         # Sample from memory
@@ -362,3 +378,18 @@ class DQNAgent:
         else:
             print(f"Setting exploration rate to {exploration_rate} not loaded.")
             self.exploration_rate = exploration_rate
+
+
+class DDQNAgent(DQNAgent):
+    @torch.no_grad()
+    def td_target(self, rewards, next_states, dones):
+        print("Double dqn -----------------------")
+        rewards = rewards.reshape(-1, 1)
+        dones = dones.reshape(-1, 1)
+        q_vals = self.net(next_states, model='online')
+        target_actions = tf.argmax(q_vals, axis=1)
+        target_actions = target_actions.reshape(-1, 1)
+        target_qs = self.net(next_states, model='target').gather(target_actions, 1)
+        target_qs = target_qs.reshape(-1, 1)
+        target_qs[dones] = 0.0
+        return (rewards + (self.gamma * target_qs))

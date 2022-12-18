@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 from tqdm import trange
-from agent import DQNAgent, MetricLogger
+from agent import DQNAgent, DDQNAgent, MetricLogger
 from wrappers import make_env
 
 
@@ -22,33 +22,44 @@ env = make_env()
 use_cuda = torch.cuda.is_available()
 print(f"Using CUDA: {use_cuda}\n")
 
-path = "checkpoints/airstriker"
+
+checkpoint = None 
+# checkpoint = Path('checkpoints/latest/airstriker_net_3.chkpt')
+
+path = "checkpoints/airstriker-dqn"
 save_dir = Path(path) 
 
 isExist = os.path.exists(path)
 if not isExist:
    os.makedirs(path)
 
-# save_dir.mkdir(parents=True)
-
-
-checkpoint = None 
-# checkpoint = Path('checkpoints/latest/airstriker_net_3.chkpt')
-
-max_memory_size=100000
-
+# Vanilla DQN
+print("Training Vanilla DQN Agent!")
 agent = DQNAgent(
     state_dim=(1, 84, 84), 
     action_dim=env.action_space.n,
     save_dir=save_dir, 
     checkpoint=checkpoint, 
     reset_exploration_rate=True, 
-    max_memory_size=max_memory_size
+    max_memory_size=10000,
+    learning_rate=0.0005,
+
 )
+
+# Double DQN
+# print("Training DDQN Agent!")
+# agent = DDQNAgent(
+#     state_dim=(1, 84, 84), 
+#     action_dim=env.action_space.n,
+#     save_dir=save_dir, 
+#     checkpoint=checkpoint, 
+#     reset_exploration_rate=True, 
+#     max_memory_size=max_memory_size
+# )
 
 logger = MetricLogger(save_dir)
 
-def fill_memory(agent: DQNAgent, num_episodes=10000):
+def fill_memory(agent: DQNAgent, num_episodes=1000):
     print("Filling up memory....")
     for _ in trange(num_episodes):
         state = env.reset()
