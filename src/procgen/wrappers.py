@@ -4,8 +4,6 @@ from collections import deque
 import gym
 from gym import spaces
 import cv2
-import retro
-from utils import AirstrikerDiscretizer
 
 
 ''' 
@@ -158,19 +156,6 @@ class ImageToPyTorch(gym.ObservationWrapper):
         return np.moveaxis(observation, 2, 0)
 
 
-# class ImageToPyTorch(gym.ObservationWrapper):
-#     def __init__(self, env):
-#         super(ImageToPyTorch, self).__init__(env)
-#         old_shape = self.observation_space.shape
-#         new_shape = (old_shape[-1], old_shape[0], old_shape[1])
-#         print("Old: ", old_shape)
-#         print("New: ", new_shape)
-#         self.observation_space = gym.spaces.Box(low=0.0, high=1.0, shape=new_shape, dtype=np.float32)
-
-#     def observation(self, observation):
-#         return np.moveaxis(observation, 2, 0)
-
-
 class ScaledFloatFrame(gym.ObservationWrapper):
     def __init__(self, env):
         gym.ObservationWrapper.__init__(self, env)
@@ -190,19 +175,8 @@ class ClipRewardEnv(gym.RewardWrapper):
         return np.sign(reward)
 
 
-def make_env():
-
-    env = retro.make(game='Airstriker-Genesis')
-    env = MaxAndSkipEnv(env) ## Return only every `skip`-th frame
-    env = WarpFrame(env) ## Reshape image
-    env = ImageToPyTorch(env) ## Invert shape
-    env = FrameStack(env, 4) ## Stack last 4 frames
-    env = ScaledFloatFrame(env) ## Scale frames
-    env = AirstrikerDiscretizer(env)
-    env = ClipRewardEnv(env)
-    return env
-
 def make_starpilot(render=False):   
+    print("Environment: Starpilot")
     if render:
         env = gym.make("procgen:procgen-starpilot-v0", distribution_mode="easy", render_mode="human")
     else:

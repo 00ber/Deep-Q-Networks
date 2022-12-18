@@ -7,7 +7,6 @@ import time, datetime
 import matplotlib.pyplot as plt
 from collections import deque
 from torch.utils.tensorboard import SummaryWriter
-import pickle 
 
 
 class DQNet(nn.Module):
@@ -38,7 +37,7 @@ class DQNet(nn.Module):
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(17024, 512),
+            nn.Linear(7168, 512),
             nn.ReLU(),
             nn.Linear(512, output_dim),
         )
@@ -388,13 +387,14 @@ class DQNAgent:
 class DDQNAgent(DQNAgent):
     @torch.no_grad()
     def td_target(self, rewards, next_states, dones):
-        print("Double dqn -----------------------")
         rewards = rewards.reshape(-1, 1)
         dones = dones.reshape(-1, 1)
         q_vals = self.net(next_states, model='online')
         target_actions = torch.argmax(q_vals, axis=1)
         target_actions = target_actions.reshape(-1, 1)
-        target_qs = self.net(next_states, model='target').gather(target_actions, 1)
+        
+        target_qs = self.net(next_states, model='target')
+        target_qs = target_qs.gather(1, target_actions)
         target_qs = target_qs.reshape(-1, 1)
         target_qs[dones] = 0.0
         return (rewards + (self.gamma * target_qs))
