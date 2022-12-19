@@ -2,7 +2,7 @@ import os
 import torch
 from pathlib import Path
 
-from agent import DDQNAgent, MetricLogger
+from agent import DuelingDQNAgent, MetricLogger
 from wrappers import make_starpilot
 import os
 from train import train, fill_memory
@@ -16,7 +16,7 @@ print(f"Using CUDA: {use_cuda}\n")
 checkpoint = None 
 # checkpoint = Path('checkpoints/latest/airstriker_net_3.chkpt')
 
-path = "checkpoints/procgen-starpilot-ddqn"
+path = "checkpoints/procgen-starpilot-dueling-dqn"
 save_dir = Path(path) 
 
 isExist = os.path.exists(path)
@@ -25,8 +25,8 @@ if not isExist:
 
 logger = MetricLogger(save_dir)
 
-print("Training DDQN Agent!")
-agent = DDQNAgent(
+print("Training Dueling DQN Agent!")
+agent = DuelingDQNAgent(
     state_dim=(1, 64, 64), 
     action_dim=env.action_space.n,
     save_dir=save_dir, 
@@ -41,5 +41,5 @@ agent = DDQNAgent(
 
 )
 
-fill_memory(agent, env, 300)
+# fill_memory(agent, env, 300)
 train(agent, env, logger)
