@@ -2,13 +2,13 @@ import os
 import torch
 from pathlib import Path
 
-from agent import DDQNAgent, MetricLogger
-from wrappers import make_starpilot
+from agent import DDQNAgent, DDQNAgentWithStepDecay, MetricLogger
+from wrappers import make_lunar
 import os
 from train import train, fill_memory
+from params import hyperparams
 
-
-env = make_starpilot()
+env = make_lunar()
 
 use_cuda = torch.cuda.is_available()
 print(f"Using CUDA: {use_cuda}\n")
@@ -16,7 +16,7 @@ print(f"Using CUDA: {use_cuda}\n")
 checkpoint = None 
 # checkpoint = Path('checkpoints/latest/airstriker_net_3.chkpt')
 
-path = "checkpoints/procgen-starpilot-ddqn"
+path = "checkpoints/lunar-lander-ddqn-rc"
 save_dir = Path(path) 
 
 isExist = os.path.exists(path)
@@ -26,20 +26,20 @@ if not isExist:
 logger = MetricLogger(save_dir)
 
 print("Training DDQN Agent!")
-agent = DDQNAgent(
-    state_dim=(1, 64, 64), 
+agent = DDQNAgentWithStepDecay(
+    state_dim=8, 
     action_dim=env.action_space.n,
     save_dir=save_dir, 
-    batch_size=256,
     checkpoint=checkpoint,  
-    exploration_rate_decay=0.999995,
-    exploration_rate_min=0.05,
-    training_frequency=1, 
-    target_network_sync_frequency=200,
-    max_memory_size=50000,
-    learning_rate=0.0005,
-
+    **hyperparams
 )
+# agent = DDQNAgent(
+#     state_dim=8, 
+#     action_dim=env.action_space.n,
+#     save_dir=save_dir, 
+#     checkpoint=checkpoint,  
+#     **hyperparams
+# )
 
-fill_memory(agent, env, 300)
+# fill_memory(agent, env, 5000)
 train(agent, env, logger)
