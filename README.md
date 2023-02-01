@@ -1,4 +1,5 @@
-# **Abstract**
+# A study in the effectiveness of various Deep Q-Network flavors 
+## **Abstract**
 
 On January 1, 2013, DeepMind published a paper called "Playing Atari
 with Deep Reinforcement Learning" introducing their algorithm called
@@ -20,7 +21,7 @@ is an attempt to study the effectiveness of a few of these DQN flavors,
 what problems they solve and compare their performance in the same
 reinforcement learning environment.
 
-# Deep Q-Networks and its flavors
+## Deep Q-Networks and its flavors
 
 -   **Vanilla DQN**  
       
@@ -135,7 +136,7 @@ reinforcement learning environment.
 
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; A(a) =The advantage of taking action an a at that state
 
-    # About the project
+    ## About the project
 
     My original goal for the project was to train an agent using DQN to
     play **Airstriker Genesis**, a space shooting game and evaluate the
@@ -167,7 +168,7 @@ reinforcement learning environment.
     Miniconda, Python 3.9, Gym, Pyorch, Numpy, Tensorboard on my
     personal Macbook Pro (M1)
 
-    # ML Methodology
+    ## ML Methodology
 
     Each agent was trained using DQN or one of its flavors. Each agent
     for a particular game was trained with the same hyperparameters with
@@ -190,7 +191,7 @@ reinforcement learning environment.
     -   **Average reward for the last 100 episodes** A measure of the
         average reward the agent accumulated over the last 100 episodes
 
-    ## Preprocessing
+    ### Preprocessing
 
     For the Airstriker and the Starpilot games:
 
@@ -217,7 +218,7 @@ reinforcement learning environment.
     (clipping the rewards to \[-1, 1\] range) but this didn’t seem to
     make much difference in my agent’s performance.
 
-# Results
+## Results
 
 -   **Airstriker Genesis**  
     The loss went down until about 5200 episodes but after that it
@@ -306,7 +307,7 @@ reinforcement learning environment.
 
     ![image](./docs/check.png)
 
-# Problems Faced
+## Problems Faced
 
   
 Here are a few of the problems that I faced while training my agents:
@@ -330,7 +331,7 @@ Here are a few of the problems that I faced while training my agents:
     hours just to realize later that I had set a parameter incorrectly
     and had to retrain all over again.
 
-# What Next?
+## What Next?
 
 Although I didn’t get a final working agent for any of the games I
 tried, I feel like I have learned a lot about reinforcement learning,
@@ -343,7 +344,7 @@ different flavors of DQN, I also learned a little about NoisyNet DQN,
 Rainbow-DQN and Prioritized Experience Replay. I couln’t implement these
 for this project, but I would like to try them out some time soon.
 
-# Lessons Learned
+## Lessons Learned
 
 -   Reinforcement learning is a very challenging problem. It takes a
     substantially large amount of time to train, it is hard to debug and
@@ -371,7 +372,7 @@ for this project, but I would like to try them out some time soon.
     reinforcement learning. It has made me even more interested into
     exploring the field further and learn more.
 
-# References / Resources
+## References / Resources
 
 -   [Reinforcement Learning (DQN) Tutorial, Adam
     Paszke](https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html)
@@ -386,6 +387,3 @@ for this project, but I would like to try them out some time soon.
 -   [Dueling Network Architecture for Deep Reinforcement Learning (Wang
     et al., 2015))](https://arxiv.org/abs/1511.06581)  
       
-      
-    *(Final source code for the project can be found*
-    [*here*](https://github.com/00ber/ml-reinforcement-learning)*)*.
